@@ -1,0 +1,131 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<script type="text/javascript">
+    //var gridReadUrl = '<%=Url.Action("LoadStudents") %>';
+    //var getStudentUrl = '<%=Url.Action("GetAStudent") %>';
+    var gridReadUrl = 'LoadStudents';
+    var getStudentUrl = 'GetAStudent';
+
+    var GridExample = function () {
+        var initialize = function () {
+            var container = $('#GridContainer').html('<div></div>');
+            var grid = $('div', container);
+
+            var filterOption = {
+                extra: false,
+                operators: {
+                    string: {
+                        eq: "Is Equal To",
+                        startswith: "Starts With",
+                        contains: "Contains",
+                        endswith: "Ends With"
+                    }
+                }
+            };
+
+            var columnOptions = [
+                {
+                    field: "Id",
+                    title: "Id",
+                    width: 100,
+                    type: "integer",
+                    filterable: false
+                },
+                {
+                    field: "LastName",
+                    title: "Last Name",
+                    filterable: filterOption
+                },
+                {
+                    field: "FirstName",
+                    title: "First Name",
+                    filterable: filterOption
+                },
+                { field: "Score", title: "Score", filterable: false },
+                { field: "Active", title: "Active", filterable: false }
+            ];
+
+            var gridOptions = {
+                dataSource: {
+                    transport: {
+                        read: {
+                            url: gridReadUrl,
+                            type: "POST",
+                            data: function () {
+                                return {
+                                    activeOnly: $('#chkShowActive').is(':checked')
+                                };
+                            }
+                        }
+                    },
+                    schema: { data: "data", total: "total", model: { id: "Id" } },
+                    serverPaging: true,
+                    serverSorting: true,
+                    serverFiltering: true
+                },
+                columns: columnOptions,
+                height: 300,
+                sortable: { mode: "multiple", allowUnsort: true },
+                filterable: true,
+                pageable: {
+                    pageSize: 30,
+                    refresh: true,
+                    messages: {
+                        refresh: "Refresh the grid"
+                    }
+                }
+            };
+
+            grid.kendoGrid(gridOptions)
+                .delegate("tbody>tr", "dblclick", function (e) {
+                    var row = e.currentTarget;
+                    var selectedItem = grid.data("kendoGrid").dataItem(row);
+
+                    var ajax = $.ajax({
+                        url: getStudentUrl,
+                        type: "POST",
+                        data: { id: selectedItem.Id },
+                        dataType: "html"
+                    });
+
+                    ajax.success(function (data) {
+                        var dialog = $('#dialog');
+                        dialog.html(data);
+                        dialog.dialog({
+                            modal: true
+                        });
+                    });
+                });
+        };
+
+        var refresh = function () {
+            var grid = $('#GridContainer>div');
+            if (grid.length < 1) {
+                return;
+            }
+
+            grid.data("kendoGrid").dataSource.read();
+        };
+
+        return {
+            Initialize: initialize,
+            Refresh: refresh
+        };
+    }();
+
+    $(document).ready(function () {
+        GridExample.Initialize();
+    });
+</script>
+
+<div id="dialog" style="display: none"></div>
+<div>
+    <div>
+        <input type="checkbox" id="chkShowActive" checked="checked"
+               onclick="return GridExample.Refresh()" />
+        Show active students only
+    </div>
+    <div id="GridContainer"></div>
+</div>
